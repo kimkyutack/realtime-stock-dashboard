@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
+import ReactDOM from "react-dom";
 import { useStockSearch } from "../hooks/useStockQueries";
 import { useStockStore } from "../store/stockStore";
 import { StockSearchResult } from "../types/stock";
@@ -12,6 +19,8 @@ const StockSearch: React.FC<StockSearchProps> = React.memo(({ onSelect }) => {
   const { searchQuery, setSearchQuery } = useStockStore();
   const [isOpen, setIsOpen] = useState(false);
   const [localQuery, setLocalQuery] = useState(searchQuery);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
   // 디바운스된 검색 쿼리
   const debouncedQuery = useDebounce(localQuery, 300);
@@ -25,6 +34,19 @@ const StockSearch: React.FC<StockSearchProps> = React.memo(({ onSelect }) => {
   useEffect(() => {
     setSearchQuery(debouncedQuery);
   }, [debouncedQuery, setSearchQuery]);
+
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: "absolute",
+        top: rect.bottom + window.scrollY + 8, // input 바로 아래 + 여백
+        left: rect.left + window.scrollX,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+  }, [isOpen]);
 
   const handleSelect = useCallback(
     (result: StockSearchResult) => {
@@ -59,7 +81,7 @@ const StockSearch: React.FC<StockSearchProps> = React.memo(({ onSelect }) => {
   const searchResultsContent = useMemo(() => {
     if (error) {
       return (
-        <div className="p-6 text-center">
+        <div className="p-6 text-center z-10">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-red-500 text-2xl">⚠️</span>
           </div>
@@ -75,7 +97,7 @@ const StockSearch: React.FC<StockSearchProps> = React.memo(({ onSelect }) => {
 
     if (searchResults && searchResults.length > 0) {
       return (
-        <div className="p-2">
+        <div className="p-2 z-50">
           {searchResults.map((result, index) => (
             <div
               key={`${result.symbol}-${index}`}
@@ -111,7 +133,7 @@ const StockSearch: React.FC<StockSearchProps> = React.memo(({ onSelect }) => {
 
     if (localQuery.length >= 2) {
       return (
-        <div className="p-8 text-center">
+        <div className="p-8 text-center z-50">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-gray-400 text-2xl">🔍</span>
           </div>
@@ -127,7 +149,7 @@ const StockSearch: React.FC<StockSearchProps> = React.memo(({ onSelect }) => {
   }, [error, searchResults, localQuery.length, handleSelect]);
 
   return (
-    <div className="relative">
+    <div className="relative z-50">
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
           <svg
@@ -145,6 +167,7 @@ const StockSearch: React.FC<StockSearchProps> = React.memo(({ onSelect }) => {
           </svg>
         </div>
         <input
+          ref={inputRef}
           type="text"
           placeholder="주식 심볼 또는 회사명 검색..."
           value={localQuery}
@@ -163,11 +186,17 @@ const StockSearch: React.FC<StockSearchProps> = React.memo(({ onSelect }) => {
         )}
       </div>
 
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-3 bg-white/95 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl max-h-80 overflow-y-auto">
-          {searchResultsContent}
-        </div>
-      )}
+      {isOpen &&
+        typeof window !== "undefined" &&
+        ReactDOM.createPortal(
+          <div
+            style={dropdownStyle}
+            className="bg-white/95 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl max-h-80 overflow-y-auto"
+          >
+            {searchResultsContent}
+          </div>,
+          document.body
+        )}
     </div>
   );
 });

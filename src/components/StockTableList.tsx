@@ -10,11 +10,11 @@ interface StockTableListProps {
 const StockTableList: React.FC<StockTableListProps> = React.memo(
   ({ stocks, onSelect, selectedSymbol }) => {
     return (
-      <div className="overflow-x-auto rounded-2xl shadow-xl bg-white/90">
+      <div className="overflow-visible rounded-2xl shadow-xl bg-white/90">
         <table className="min-w-full text-sm text-gray-800">
           <thead className="bg-gradient-to-r from-blue-50 to-purple-50">
             <tr>
-              <th className="px-4 py-3 text-rigth font-bold">종목</th>
+              <th className="px-4 py-3 text-left font-bold">종목</th>
               <th className="px-4 py-3 text-right font-bold">현재가</th>
               <th className="px-4 py-3 text-right font-bold">전일비</th>
               <th className="px-4 py-3 text-right font-bold">등락률</th>
