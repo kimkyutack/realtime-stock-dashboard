@@ -7,6 +7,7 @@ import StockChart from "./StockChart";
 import TechnicalIndicators from "./TechnicalIndicators";
 import Watchlist from "./Watchlist";
 import Settings from "./Settings";
+import VirtualizedStockList from "./VirtualizedStockList";
 
 type TabType = "market" | "watchlist" | "settings";
 
@@ -14,6 +15,7 @@ const Dashboard: React.FC = React.memo(() => {
   const [activeTab, setActiveTab] = useState<TabType>("market");
   const { selectedStock, setSelectedStock, settings } = useStockStore();
   const [isLoaded, setIsLoaded] = useState(false);
+  const [useVirtualizedList, setUseVirtualizedList] = useState(false);
 
   const { data: demoStocks, isLoading: isLoadingStocks } = useDemoStockData();
   const { data: chartData, isLoading: isLoadingChart } = useStockChartData(
@@ -28,6 +30,13 @@ const Dashboard: React.FC = React.memo(() => {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", settings.theme);
   }, [settings.theme]);
+
+  // 주식 데이터가 많을 때 가상화된 리스트 사용
+  useEffect(() => {
+    if (demoStocks && demoStocks.length > 20) {
+      setUseVirtualizedList(true);
+    }
+  }, [demoStocks]);
 
   const handleStockSelect = useCallback(
     (symbol: string) => {
@@ -146,11 +155,21 @@ const Dashboard: React.FC = React.memo(() => {
                     </p>
                   </div>
                 </div>
-                <div className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full">
-                  {isLoadingStocks ? (
-                    <span className="animate-pulse">로딩 중...</span>
-                  ) : (
-                    `${demoStocks?.length || 0}개 종목`
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full">
+                    {isLoadingStocks ? (
+                      <span className="animate-pulse">로딩 중...</span>
+                    ) : (
+                      `${demoStocks?.length || 0}개 종목`
+                    )}
+                  </div>
+                  {demoStocks && demoStocks.length > 10 && (
+                    <button
+                      onClick={() => setUseVirtualizedList(!useVirtualizedList)}
+                      className="text-sm bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-2 rounded-lg hover:shadow-lg transition-all duration-300"
+                    >
+                      {useVirtualizedList ? "그리드 보기" : "가상화 보기"}
+                    </button>
                   )}
                 </div>
               </div>
@@ -164,17 +183,27 @@ const Dashboard: React.FC = React.memo(() => {
                   ))}
                 </div>
               ) : demoStocks ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {demoStocks.map((stock, index) => (
-                    <div
-                      key={stock.symbol}
-                      className="animate-fade-in"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      <StockCard stock={stock} onSelect={handleStockSelect} />
-                    </div>
-                  ))}
-                </div>
+                useVirtualizedList ? (
+                  <VirtualizedStockList
+                    stocks={demoStocks}
+                    onSelect={handleStockSelect}
+                    height={600}
+                    itemHeight={320}
+                    width={800}
+                  />
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {demoStocks.map((stock, index) => (
+                      <div
+                        key={stock.symbol}
+                        className="animate-fade-in"
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                      >
+                        <StockCard stock={stock} onSelect={handleStockSelect} />
+                      </div>
+                    ))}
+                  </div>
+                )
               ) : (
                 <div className="text-center py-12">
                   <div className="text-gray-500 mb-4 text-lg">
@@ -206,6 +235,7 @@ const Dashboard: React.FC = React.memo(() => {
     demoStocks,
     isLoadingStocks,
     handleStockSelect,
+    useVirtualizedList,
   ]);
 
   return (

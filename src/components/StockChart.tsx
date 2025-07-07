@@ -43,7 +43,7 @@ const StockChart: React.FC<StockChartProps> = ({
             <span className="text-white text-2xl">📈</span>
           </div>
           <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent text-left">
               차트 로딩 중
             </h2>
             <p className="text-gray-600 mt-1">데이터를 불러오는 중입니다...</p>
@@ -62,7 +62,7 @@ const StockChart: React.FC<StockChartProps> = ({
             <span className="text-white text-2xl">📊</span>
           </div>
           <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent text-left">
               차트 데이터 없음
             </h2>
             <p className="text-gray-600 mt-1">
