@@ -44,10 +44,62 @@ export const getStockQuote = async (symbol: string): Promise<StockData> => {
   }
 };
 
+// 데모 차트 데이터 생성 함수
+const generateDemoChartData = (
+  symbol: string,
+  basePrice: number
+): StockChartData[] => {
+  const data: StockChartData[] = [];
+  const today = new Date();
+
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+
+    // 랜덤한 가격 변동 생성
+    const volatility = 0.02;
+    const randomChange = (Math.random() - 0.5) * volatility;
+    const price = basePrice * (1 + randomChange);
+
+    // 랜덤한 거래량 생성
+    const baseVolume = 1000000 + Math.random() * 5000000;
+    const volume = Math.floor(baseVolume);
+
+    data.push({
+      date: date.toISOString().split("T")[0],
+      price: Math.round(price * 100) / 100,
+      volume: volume,
+      sma: Math.round(basePrice * (1 + randomChange * 0.5) * 100) / 100,
+    });
+  }
+
+  return data;
+};
+
 export const getStockChartData = async (
   symbol: string
 ): Promise<StockChartData[]> => {
   try {
+    if (API_KEY === "demo") {
+      // 심볼에 따른 기본 가격 설정
+      const basePrices: { [key: string]: number } = {
+        AAPL: 150,
+        GOOGLE: 2750,
+        MSFT: 320,
+        TSLA: 850,
+        AMZN: 185,
+        NVDA: 450,
+        META: 300,
+        NFLX: 500,
+        GOOGL: 2750,
+        BRK: 350000,
+      };
+
+      const basePrice = basePrices[symbol.toUpperCase()] || 100;
+      return generateDemoChartData(symbol, basePrice);
+    }
+
+    // 실제 API 호출
     const response = await api.get("", {
       params: {
         function: "TIME_SERIES_DAILY",
@@ -68,13 +120,28 @@ export const getStockChartData = async (
         date,
         price: parseFloat(data["4. close"]),
         volume: parseInt(data["5. volume"]),
+        sma: parseFloat(data["4. close"]), // 실제 데이터에서는 별도 계산 필요
       }))
       .reverse();
 
     return chartData;
   } catch (error) {
     console.error("차트 데이터 가져오기 실패:", error);
-    throw error;
+    const basePrices: { [key: string]: number } = {
+      AAPL: 150,
+      GOOGLE: 2750,
+      MSFT: 320,
+      TSLA: 850,
+      AMZN: 185,
+      NVDA: 450,
+      META: 300,
+      NFLX: 500,
+      GOOGL: 2750,
+      BRK: 350000,
+    };
+
+    const basePrice = basePrices[symbol.toUpperCase()] || 100;
+    return generateDemoChartData(symbol, basePrice);
   }
 };
 
