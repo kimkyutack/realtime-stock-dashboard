@@ -8,14 +8,16 @@ import TechnicalIndicators from "./TechnicalIndicators";
 import Watchlist from "./Watchlist";
 import Settings from "./Settings";
 import VirtualizedStockList from "./VirtualizedStockList";
+import StockTableList from "./StockTableList";
 
 type TabType = "market" | "watchlist" | "settings";
+type ViewMode = "table" | "card" | "virtual";
 
 const Dashboard: React.FC = React.memo(() => {
   const [activeTab, setActiveTab] = useState<TabType>("market");
   const { selectedStock, setSelectedStock, settings } = useStockStore();
   const [isLoaded, setIsLoaded] = useState(false);
-  const [useVirtualizedList, setUseVirtualizedList] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   const { data: demoStocks, isLoading: isLoadingStocks } = useDemoStockData();
   const { data: chartData, isLoading: isLoadingChart } = useStockChartData(
@@ -30,13 +32,6 @@ const Dashboard: React.FC = React.memo(() => {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", settings.theme);
   }, [settings.theme]);
-
-  // 주식 데이터가 많을 때 가상화된 리스트 사용
-  useEffect(() => {
-    if (demoStocks && demoStocks.length > 20) {
-      setUseVirtualizedList(true);
-    }
-  }, [demoStocks]);
 
   const handleStockSelect = useCallback(
     (symbol: string) => {
@@ -107,6 +102,103 @@ const Dashboard: React.FC = React.memo(() => {
               <StockSearch onSelect={handleStockSelect} />
             </div>
 
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-500 hover:-translate-y-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mr-6 shadow-lg">
+                    <span className="text-white text-2xl">🔥</span>
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent text-left">
+                      인기 주식
+                    </h2>
+                    <p className="text-gray-600 mt-1 text-left">
+                      실시간 인기 종목을 확인하세요
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setViewMode("table")}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 border ${
+                      viewMode === "table"
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-blue-600 border-blue-200"
+                    } hover:bg-blue-500 hover:text-white`}
+                  >
+                    📋 리스트형
+                  </button>
+                  <button
+                    onClick={() => setViewMode("card")}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 border ${
+                      viewMode === "card"
+                        ? "bg-purple-600 text-white"
+                        : "bg-white text-purple-600 border-purple-200"
+                    } hover:bg-purple-500 hover:text-white`}
+                  >
+                    🗂️ 카드형
+                  </button>
+                  <button
+                    onClick={() => setViewMode("virtual")}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 border ${
+                      viewMode === "virtual"
+                        ? "bg-green-600 text-white"
+                        : "bg-white text-green-600 border-green-200"
+                    } hover:bg-green-500 hover:text-white`}
+                  >
+                    ⚡ 가상화
+                  </button>
+                </div>
+              </div>
+
+              {isLoadingStocks ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="bg-gray-200 rounded-2xl h-48"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : demoStocks ? (
+                viewMode === "table" ? (
+                  <StockTableList
+                    stocks={demoStocks}
+                    onSelect={handleStockSelect}
+                    selectedSymbol={selectedStock || undefined}
+                  />
+                ) : viewMode === "card" ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {demoStocks.map((stock, index) => (
+                      <div
+                        key={stock.symbol}
+                        className="animate-fade-in"
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                      >
+                        <StockCard stock={stock} onSelect={handleStockSelect} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <VirtualizedStockList
+                    stocks={demoStocks}
+                    onSelect={handleStockSelect}
+                    height={600}
+                    itemHeight={320}
+                    width={800}
+                  />
+                )
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-gray-500 mb-4 text-lg">
+                    주식 데이터를 불러올 수 없습니다
+                  </div>
+                  <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105">
+                    다시 시도
+                  </button>
+                </div>
+              )}
+            </div>
+
             {selectedStock && (
               <>
                 <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-500 hover:-translate-y-2">
@@ -139,82 +231,6 @@ const Dashboard: React.FC = React.memo(() => {
                 )}
               </>
             )}
-
-            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-500 hover:-translate-y-2">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                  <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mr-6 shadow-lg">
-                    <span className="text-white text-2xl">🔥</span>
-                  </div>
-                  <div>
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent text-left">
-                      인기 주식
-                    </h2>
-                    <p className="text-gray-600 mt-1 text-left">
-                      실시간 인기 종목을 확인하세요
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full">
-                    {isLoadingStocks ? (
-                      <span className="animate-pulse">로딩 중...</span>
-                    ) : (
-                      `${demoStocks?.length || 0}개 종목`
-                    )}
-                  </div>
-                  {demoStocks && demoStocks.length > 10 && (
-                    <button
-                      onClick={() => setUseVirtualizedList(!useVirtualizedList)}
-                      className="text-sm bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-2 rounded-lg hover:shadow-lg transition-all duration-300"
-                    >
-                      {useVirtualizedList ? "그리드 보기" : "가상화 보기"}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {isLoadingStocks ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="bg-gray-200 rounded-2xl h-48"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : demoStocks ? (
-                useVirtualizedList ? (
-                  <VirtualizedStockList
-                    stocks={demoStocks}
-                    onSelect={handleStockSelect}
-                    height={600}
-                    itemHeight={320}
-                    width={800}
-                  />
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {demoStocks.map((stock, index) => (
-                      <div
-                        key={stock.symbol}
-                        className="animate-fade-in"
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        <StockCard stock={stock} onSelect={handleStockSelect} />
-                      </div>
-                    ))}
-                  </div>
-                )
-              ) : (
-                <div className="text-center py-12">
-                  <div className="text-gray-500 mb-4 text-lg">
-                    주식 데이터를 불러올 수 없습니다
-                  </div>
-                  <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105">
-                    다시 시도
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         );
 
@@ -235,7 +251,7 @@ const Dashboard: React.FC = React.memo(() => {
     demoStocks,
     isLoadingStocks,
     handleStockSelect,
-    useVirtualizedList,
+    viewMode,
   ]);
 
   return (

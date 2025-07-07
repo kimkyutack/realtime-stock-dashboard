@@ -3,18 +3,20 @@ import { useWatchlistData } from "../hooks/useStockQueries";
 import { useStockStore } from "../store/stockStore";
 import StockCard from "./StockCard";
 import VirtualizedStockList from "./VirtualizedStockList";
+import StockTableList from "./StockTableList";
+
+type ViewMode = "table" | "card" | "virtual";
 
 const Watchlist: React.FC = React.memo(() => {
   const { watchlist, removeFromWatchlist } = useStockStore();
-  const [useVirtualizedList, setUseVirtualizedList] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const symbols = watchlist.map((item) => item.symbol);
 
   const { data: stocks, isLoading, error } = useWatchlistData(symbols);
 
-  // 주식 데이터가 많을 때 가상화된 리스트 사용
   useEffect(() => {
-    if (stocks && stocks.length > 10) {
-      setUseVirtualizedList(true);
+    if (stocks && stocks.length > 10 && viewMode === "table") {
+      setViewMode("virtual");
     }
   }, [stocks]);
 
@@ -131,26 +133,46 @@ const Watchlist: React.FC = React.memo(() => {
             </p>
           </div>
         </div>
-        {stocks && stocks.length > 10 && (
-          <button
-            onClick={() => setUseVirtualizedList(!useVirtualizedList)}
-            className="text-sm bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300"
-          >
-            {useVirtualizedList ? "그리드 보기" : "가상화 보기"}
-          </button>
+        {stocks && stocks.length > 0 && (
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setViewMode("table")}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 border ${
+                viewMode === "table"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-blue-600 border-blue-200"
+              } hover:bg-blue-500 hover:text-white`}
+            >
+              📋 리스트형
+            </button>
+            <button
+              onClick={() => setViewMode("card")}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 border ${
+                viewMode === "card"
+                  ? "bg-purple-600 text-white"
+                  : "bg-white text-purple-600 border-purple-200"
+              } hover:bg-purple-500 hover:text-white`}
+            >
+              🗂️ 카드형
+            </button>
+            <button
+              onClick={() => setViewMode("virtual")}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 border ${
+                viewMode === "virtual"
+                  ? "bg-green-600 text-white"
+                  : "bg-white text-green-600 border-green-200"
+              } hover:bg-green-500 hover:text-white`}
+            >
+              ⚡ 가상화
+            </button>
+          </div>
         )}
       </div>
 
       {stocks && stocks.length > 0 ? (
-        useVirtualizedList ? (
-          <VirtualizedStockList
-            stocks={stocks}
-            onSelect={() => {}}
-            height={600}
-            itemHeight={320}
-            width={800}
-          />
-        ) : (
+        viewMode === "table" ? (
+          <StockTableList stocks={stocks} onSelect={() => {}} />
+        ) : viewMode === "card" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {stocks.map((stock) => (
               <div key={stock.symbol} className="relative group">
@@ -165,6 +187,14 @@ const Watchlist: React.FC = React.memo(() => {
               </div>
             ))}
           </div>
+        ) : (
+          <VirtualizedStockList
+            stocks={stocks}
+            onSelect={() => {}}
+            height={600}
+            itemHeight={320}
+            width={800}
+          />
         )
       ) : (
         <div className="text-center py-12">
