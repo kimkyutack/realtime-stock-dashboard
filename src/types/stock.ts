@@ -16,6 +16,7 @@ export interface StockChartData {
   date: string;
   price: number;
   volume: number;
+  sma?: number; // Simple Moving Average
 }
 
 export interface WatchlistItem {

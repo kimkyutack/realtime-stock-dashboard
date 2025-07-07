@@ -6,9 +6,15 @@ import "./App.css";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 10000,
+      staleTime: 30000, // 30초
+      gcTime: 5 * 60 * 1000, // 5분
       retry: 2,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+    },
+    mutations: {
+      retry: 1,
     },
   },
 });

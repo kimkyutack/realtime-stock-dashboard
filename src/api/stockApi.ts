@@ -99,7 +99,7 @@ export const searchStocks = async (
       type: match["3. type"],
     }));
   } catch (error) {
-    console.error("주식 검색 실패:", error);
+    console.error("검색 실패:", error);
     throw error;
   }
 };
@@ -126,7 +126,7 @@ export const getDemoStockData = (): StockData[] => [
     previousClose: 148.1,
   },
   {
-    symbol: "GOOGL",
+    symbol: "GOOGLE",
     name: "Alphabet Inc.",
     price: 2750.8,
     change: -15.2,

@@ -1,82 +1,188 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useDemoStockData, useStockChartData } from "../hooks/useStockQueries";
 import { useStockStore } from "../store/stockStore";
 import StockSearch from "./StockSearch";
 import StockCard from "./StockCard";
 import StockChart from "./StockChart";
+import TechnicalIndicators from "./TechnicalIndicators";
 import Watchlist from "./Watchlist";
 import Settings from "./Settings";
 
 type TabType = "market" | "watchlist" | "settings";
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC = React.memo(() => {
   const [activeTab, setActiveTab] = useState<TabType>("market");
-  const { selectedStock, setSelectedStock } = useStockStore();
+  const { selectedStock, setSelectedStock, settings } = useStockStore();
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const { data: demoStocks, isLoading: isLoadingStocks } = useDemoStockData();
   const { data: chartData, isLoading: isLoadingChart } = useStockChartData(
     selectedStock || ""
   );
 
-  const handleStockSelect = (symbol: string) => {
-    setSelectedStock(symbol);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoaded(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const renderTabContent = () => {
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", settings.theme);
+  }, [settings.theme]);
+
+  const handleStockSelect = useCallback(
+    (symbol: string) => {
+      setSelectedStock(symbol);
+    },
+    [setSelectedStock]
+  );
+
+  const handleTabChange = useCallback((tab: TabType) => {
+    setActiveTab(tab);
+  }, []);
+
+  // 탭 데이터 메모이제이션
+  const tabs = useMemo(
+    () => [
+      {
+        id: "market",
+        label: "시장",
+        icon: "📊",
+        gradient: "from-blue-500 to-purple-600",
+      },
+      {
+        id: "watchlist",
+        label: "관심종목",
+        icon: "⭐",
+        gradient: "from-yellow-500 to-orange-500",
+      },
+      {
+        id: "settings",
+        label: "설정",
+        icon: "⚙️",
+        gradient: "from-pink-500 to-red-500",
+      },
+    ],
+    []
+  );
+
+  // 현재 날짜 메모이제이션
+  const currentDate = useMemo(
+    () =>
+      new Date().toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+    []
+  );
+
+  const renderTabContent = useCallback(() => {
     switch (activeTab) {
       case "market":
         return (
-          <div className="space-y-6">
-            {/* 검색 섹션 */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                주식 검색
-              </h2>
+          <div className="space-y-8 animate-fade-in">
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-500 hover:-translate-y-2">
+              <div className="flex items-center mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mr-6 shadow-lg">
+                  <span className="text-white text-2xl">🔍</span>
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-left">
+                    주식 검색
+                  </h2>
+                  <p className="text-gray-600 mt-1">
+                    심볼이나 회사명으로 주식을 찾아보세요
+                  </p>
+                </div>
+              </div>
               <StockSearch onSelect={handleStockSelect} />
             </div>
 
-            {/* 선택된 주식 차트 */}
             {selectedStock && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
-                  선택된 주식
-                </h2>
-                <StockChart
-                  symbol={selectedStock}
-                  data={chartData || []}
-                  isLoading={isLoadingChart}
-                />
-              </div>
+              <>
+                <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-500 hover:-translate-y-2">
+                  <div className="flex items-center mb-6">
+                    <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center mr-6 shadow-lg">
+                      <span className="text-white text-2xl">📈</span>
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent text-left">
+                        선택된 주식
+                      </h2>
+                      <p className="text-gray-600 mt-1 text-left">
+                        {selectedStock} 상세 분석
+                      </p>
+                    </div>
+                  </div>
+                  <StockChart
+                    symbol={selectedStock}
+                    data={chartData || []}
+                    isLoading={isLoadingChart}
+                  />
+                </div>
+
+                {/* 기술적 지표 */}
+                {chartData && chartData.length > 0 && (
+                  <TechnicalIndicators
+                    data={chartData}
+                    currentPrice={chartData[chartData.length - 1].price}
+                  />
+                )}
+              </>
             )}
 
-            {/* 인기 주식 목록 */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                인기 주식
-              </h2>
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-500 hover:-translate-y-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mr-6 shadow-lg">
+                    <span className="text-white text-2xl">🔥</span>
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent text-left">
+                      인기 주식
+                    </h2>
+                    <p className="text-gray-600 mt-1 text-left">
+                      실시간 인기 종목을 확인하세요
+                    </p>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full">
+                  {isLoadingStocks ? (
+                    <span className="animate-pulse">로딩 중...</span>
+                  ) : (
+                    `${demoStocks?.length || 0}개 종목`
+                  )}
+                </div>
+              </div>
+
               {isLoadingStocks ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div key={i} className="animate-pulse">
-                      <div className="bg-gray-200 rounded-lg h-32"></div>
+                      <div className="bg-gray-200 rounded-2xl h-48"></div>
                     </div>
                   ))}
                 </div>
               ) : demoStocks ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {demoStocks.map((stock) => (
-                    <StockCard
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {demoStocks.map((stock, index) => (
+                    <div
                       key={stock.symbol}
-                      stock={stock}
-                      onSelect={handleStockSelect}
-                    />
+                      className="animate-fade-in"
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <StockCard stock={stock} onSelect={handleStockSelect} />
+                    </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <div className="text-gray-500">
+                <div className="text-center py-12">
+                  <div className="text-gray-500 mb-4 text-lg">
                     주식 데이터를 불러올 수 없습니다
                   </div>
+                  <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105">
+                    다시 시도
+                  </button>
                 </div>
               )}
             </div>
@@ -92,47 +198,82 @@ const Dashboard: React.FC = () => {
       default:
         return null;
     }
-  };
+  }, [
+    activeTab,
+    selectedStock,
+    chartData,
+    isLoadingChart,
+    demoStocks,
+    isLoadingStocks,
+    handleStockSelect,
+  ]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      className={`min-h-screen transition-all duration-700 ${
+        isLoaded ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      {/* 배경 그라데이션 */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full blur-3xl opacity-20"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full blur-3xl opacity-20"></div>
+      </div>
+
       {/* 헤더 */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-white/20 sticky top-0 z-50 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex justify-between items-center h-24">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">
-                📈 주식 대시보드
-              </h1>
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mr-6 shadow-lg">
+                <span className="text-white text-3xl">📈</span>
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  StockVision
+                </h1>
+                <p className="text-gray-600 text-lg text-left">
+                  실시간 주식 대시보드
+                </p>
+              </div>
             </div>
-            <div className="text-sm text-gray-500">실시간 주식 데이터</div>
+            <div className="flex items-center space-x-6">
+              <div className="text-sm text-gray-600 bg-white/50 px-4 py-2 rounded-full backdrop-blur-sm">
+                {currentDate}
+              </div>
+              <div className="w-4 h-4 bg-gradient-to-r from-green-400 to-blue-500 rounded-full animate-pulse"></div>
+            </div>
           </div>
         </div>
       </header>
 
       {/* 네비게이션 탭 */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            {[
-              { id: "market", label: "시장", icon: "📊" },
-              { id: "watchlist", label: "관심종목", icon: "⭐" },
-              { id: "settings", label: "설정", icon: "⚙️" },
-            ].map((tab) => (
+      <nav className="bg-white/80 backdrop-blur-xl border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex space-x-2 pt-3">
+            {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
+                onClick={() => handleTabChange(tab.id as TabType)}
                 className={`
-                  py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                  relative px-8 py-5 rounded-t-2xl font-semibold text-lg transition-all duration-300
                   ${
                     activeTab === tab.id
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      ? "text-white"
+                      : "text-gray-600 hover:text-gray-800"
                   }
                 `}
               >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.label}
+                {activeTab === tab.id && (
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-r ${tab.gradient} rounded-t-2xl shadow-lg`}
+                  ></div>
+                )}
+                <span className="relative z-10 flex items-center">
+                  <span className="mr-3 text-xl">{tab.icon}</span>
+                  {tab.label}
+                </span>
               </button>
             ))}
           </div>
@@ -140,16 +281,21 @@ const Dashboard: React.FC = () => {
       </nav>
 
       {/* 메인 콘텐츠 */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {renderTabContent()}
-      </main>
+      <main className="max-w-7xl mx-auto px-6 py-10">{renderTabContent()}</main>
 
       {/* 푸터 */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="text-center text-sm text-gray-500">
-            <p>React Query + Zustand로 만든 실시간 주식 대시보드</p>
-            <p className="mt-1">
+      <footer className="bg-white/80 backdrop-blur-xl border-t border-white/20 mt-20">
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                <span className="text-white text-lg">⚡</span>
+              </div>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                실시간 주식 대시보드
+              </h3>
+            </div>
+            <p className="text-gray-500 text-sm">
               Alpha Vantage API를 사용하여 데이터를 제공합니다
             </p>
           </div>
@@ -157,6 +303,8 @@ const Dashboard: React.FC = () => {
       </footer>
     </div>
   );
-};
+});
+
+Dashboard.displayName = "Dashboard";
 
 export default Dashboard;
