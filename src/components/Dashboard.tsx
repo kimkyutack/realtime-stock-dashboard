@@ -138,7 +138,7 @@ const Dashboard: React.FC = React.memo(() => {
                   >
                     🗂️ 카드형
                   </button>
-                  <button
+                  {/* <button
                     onClick={() => setViewMode("virtual")}
                     className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 border ${
                       viewMode === "virtual"
@@ -147,7 +147,7 @@ const Dashboard: React.FC = React.memo(() => {
                     } hover:bg-green-500 hover:text-white`}
                   >
                     ⚡ 가상화
-                  </button>
+                  </button> */}
                 </div>
               </div>
 
